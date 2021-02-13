@@ -89,7 +89,8 @@ public:
 
 protected:
 	
-	/** Fires a projectile. */
+	/** <del>Fires a projectile.</del> */
+	/** New behaviour: play an animation, nothing more. */
 	void OnFire();
 
 	/** Resets HMD orientation and position in VR. */
