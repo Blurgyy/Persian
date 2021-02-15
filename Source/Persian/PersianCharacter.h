@@ -148,13 +148,13 @@ public:
 
 	/**/
 protected:
-	AActor* AttatchedObject;
+	AActor* AttachedObject;
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Persian")
-		bool bHasAttatchedObject;
+		bool bHasAttachedObject;
 
 	UFUNCTION(BlueprintCallable, Category = "Persian")
-		void Attatch(AActor* Object);
+		void Attach(AActor* Object);
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		AActor* const Attatching() const;
 };
