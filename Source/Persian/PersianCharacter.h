@@ -156,6 +156,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		void Attach(AActor* Object);
 	UFUNCTION(BlueprintCallable, Category = "Persian")
-		AActor* const Attatching() const;
+		AActor* const Attaching() const;
 };
 

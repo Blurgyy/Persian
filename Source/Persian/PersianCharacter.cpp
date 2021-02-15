@@ -273,6 +273,6 @@ void APersianCharacter::Attach(AActor* Object) {
 	this->AttachedObject = Object;
 	this->bHasAttachedObject = true;
 }
-AActor* const APersianCharacter::Attatching() const {
+AActor* const APersianCharacter::Attaching() const {
 	return this->AttachedObject;
 }
