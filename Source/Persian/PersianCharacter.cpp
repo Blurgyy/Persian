@@ -27,7 +27,6 @@ FObjectState::FObjectState(float const& dist, FRotator const& rotation)
 
 APersianCharacter::APersianCharacter()
 {
-	this->bHasAttachedObject = false;
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
@@ -286,10 +285,11 @@ void APersianCharacter::Tick(float DeltaTime) {
 	this->MoveAttachedObject();
 }
 void APersianCharacter::MoveAttachedObject() {
-	if (this->bHasAttachedObject) {
+	if (this->AttachedObject != nullptr) {
 		auto CamLocation = this->FirstPersonCameraComponent->GetComponentLocation();
 		auto CamForward = this->FirstPersonCameraComponent->GetForwardVector();
-		this->AttachedObject->SetActorLocation(CamLocation + CamForward * this->State.Dist);
+		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
+		this->AttachedObject->SetActorLocation(TargetLocation);
 		this->AttachedObject->SetActorRotation(this->State.Rotation);
 	}
 }
@@ -297,7 +297,8 @@ void APersianCharacter::MoveAttachedObject() {
 void APersianCharacter::Attach(AActor* Object) {
 	check(Object != nullptr);
 	this->AttachedObject = Object;
-	this->bHasAttachedObject = true;
+	// Disable physics simulation
+	this->AttachedObject->DisableComponentsSimulatePhysics();
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	this->State = FObjectState {
@@ -306,9 +307,9 @@ void APersianCharacter::Attach(AActor* Object) {
 	};
 }
 void APersianCharacter::Detach() {
-	this->MoveAttachedObject();
+	// Re-enable physics simulation
+	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
 	this->AttachedObject = nullptr;
-	this->bHasAttachedObject = false;
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
 		FRotator{0, 0, 0},

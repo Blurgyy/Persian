@@ -159,11 +159,10 @@ public:
 
 	/**/
 protected:
-	AActor* AttachedObject;
 	FObjectState State;
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Persian")
-		bool bHasAttachedObject;
+		AActor* AttachedObject;
 
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		void Attach(AActor* Object);
