@@ -19,6 +19,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
 APersianCharacter::APersianCharacter()
 {
+	this->bHasAttatchedObject = false;
+	this->AttatchedObject = nullptr;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 
@@ -263,4 +266,13 @@ bool APersianCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerI
 	}
 	
 	return false;
+}
+
+void APersianCharacter::Attatch(AActor* Object) {
+	check(Object != nullptr);
+	this->AttatchedObject = Object;
+	this->bHasAttatchedObject = true;
+}
+AActor* const APersianCharacter::Attatching() const {
+	return this->AttatchedObject;
 }

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "ScalableActor.h"
+#include "GameFramework/Actor.h"
 #include "PersianCharacter.generated.h"
 
 class UInputComponent;
@@ -147,8 +147,15 @@ public:
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
 	/**/
+protected:
+	AActor* AttatchedObject;
 public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Persian")
-		AScalableActor* PossessedObject;
+	UPROPERTY(BlueprintReadOnly, Category = "Persian")
+		bool bHasAttatchedObject;
+
+	UFUNCTION(BlueprintCallable, Category = "Persian")
+		void Attatch(AActor* Object);
+	UFUNCTION(BlueprintCallable, Category = "Persian")
+		AActor* const Attatching() const;
 };
 
