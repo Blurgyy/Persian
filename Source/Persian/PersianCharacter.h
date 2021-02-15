@@ -15,6 +15,17 @@ class UMotionControllerComponent;
 class UAnimMontage;
 class USoundBase;
 
+USTRUCT()
+struct FObjectState {
+	GENERATED_USTRUCT_BODY()
+
+	FObjectState();
+	FObjectState(float const& dist, FRotator const& rotation);
+
+	float Dist;
+	FRotator Rotation;
+};
+
 UCLASS(config=Game)
 class APersianCharacter : public ACharacter
 {
@@ -149,6 +160,7 @@ public:
 	/**/
 protected:
 	AActor* AttachedObject;
+	FObjectState State;
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Persian")
 		bool bHasAttachedObject;
@@ -159,5 +171,9 @@ public:
 		void Detach();
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		AActor* const Attaching() const;
+
+	// Called every frame?
+	virtual void Tick(float Deltatime) override;
+	void MoveAttachedObject();
 };
 

@@ -12,7 +12,15 @@
 #include "MotionControllerComponent.h"
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
 
+#include <limits>
+
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
+
+//////////////////////////////////////////////////////////////////////////
+// FObjectState
+FObjectState::FObjectState() {}
+FObjectState::FObjectState(float const& dist, FRotator const& rotation)
+	: Dist{dist}, Rotation{rotation} {}
 
 //////////////////////////////////////////////////////////////////////////
 // APersianCharacter
@@ -21,6 +29,10 @@ APersianCharacter::APersianCharacter()
 {
 	this->bHasAttachedObject = false;
 	this->AttachedObject = nullptr;
+	this->State = FObjectState {
+		std::numeric_limits<float>::lowest(),
+		FRotator{0, 0, 0},
+	};
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
@@ -268,16 +280,39 @@ bool APersianCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerI
 	return false;
 }
 
+void APersianCharacter::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	this->MoveAttachedObject();
+}
+void APersianCharacter::MoveAttachedObject() {
+	if (this->bHasAttachedObject) {
+		auto CamLocation = this->FirstPersonCameraComponent->GetComponentLocation();
+		auto CamForward = this->FirstPersonCameraComponent->GetForwardVector();
+		this->AttachedObject->SetActorLocation(CamLocation + CamForward * this->State.Dist);
+		this->AttachedObject->SetActorRotation(this->State.Rotation);
+	}
+}
+
 void APersianCharacter::Attach(AActor* Object) {
 	check(Object != nullptr);
 	this->AttachedObject = Object;
 	this->bHasAttachedObject = true;
+	FVector centroid, _;
+	this->AttachedObject->GetActorBounds(true, centroid, _);
+	this->State = FObjectState {
+		(centroid - this->FirstPersonCameraComponent->GetComponentLocation()).Size(),
+		this->AttachedObject->GetActorRotation(),
+	};
 }
 void APersianCharacter::Detach() {
-	check(GEngine != nullptr);
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Detaching .."));
+	this->MoveAttachedObject();
 	this->AttachedObject = nullptr;
 	this->bHasAttachedObject = false;
+	this->State = FObjectState {
+		std::numeric_limits<float>::lowest(),
+		FRotator{0, 0, 0},
+	};
 }
 AActor* const APersianCharacter::Attaching() const {
 	return this->AttachedObject;
