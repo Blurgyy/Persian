@@ -273,6 +273,12 @@ void APersianCharacter::Attach(AActor* Object) {
 	this->AttachedObject = Object;
 	this->bHasAttachedObject = true;
 }
+void APersianCharacter::Detach() {
+	check(GEngine != nullptr);
+	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Detaching .."));
+	this->AttachedObject = nullptr;
+	this->bHasAttachedObject = false;
+}
 AActor* const APersianCharacter::Attaching() const {
 	return this->AttachedObject;
 }
