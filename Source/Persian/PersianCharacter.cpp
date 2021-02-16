@@ -290,7 +290,6 @@ void APersianCharacter::MoveAttachedObject() {
 		auto CamForward = this->FirstPersonCameraComponent->GetForwardVector();
 		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
 		this->AttachedObject->SetActorLocation(TargetLocation);
-		this->AttachedObject->SetActorRotation(this->State.Rotation);
 	}
 }
 
