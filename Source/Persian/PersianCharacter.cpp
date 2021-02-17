@@ -293,8 +293,10 @@ void APersianCharacter::MoveAttachedObject() {
 	}
 }
 
-void APersianCharacter::Attach(AActor* Object) {
-	check(Object != nullptr);
+void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
+	if (Object == nullptr) {
+		return;
+	}
 	this->AttachedObject = Object;
 	// Disable physics simulation
 	this->AttachedObject->DisableComponentsSimulatePhysics();
@@ -306,6 +308,9 @@ void APersianCharacter::Attach(AActor* Object) {
 	};
 }
 void APersianCharacter::Detach() {
+	if (this->AttachedObject == nullptr) {
+		return;
+	}
 	// Re-enable physics simulation
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
 	this->AttachedObject = nullptr;
