@@ -287,11 +287,62 @@ void APersianCharacter::Tick(float DeltaTime) {
 }
 void APersianCharacter::MoveAttachedObject() {
 	if (this->AttachedObject != nullptr) {
-		auto CamLocation = this->FirstPersonCameraComponent->GetComponentLocation();
-		auto CamForward = this->FirstPersonCameraComponent->GetForwardVector();
-		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
-		TargetLocation -= this->State.Offset;
-		this->AttachedObject->SetActorLocation(TargetLocation);
+		auto CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+		auto CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+
+		// Get vertices of attached object
+		auto mesh = Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
+		if (mesh->GetNumVertices(0) > 0) {
+			FPositionVertexBuffer const* verts =
+				&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+			FHitResult hitres;
+			FCollisionQueryParams params;
+			params.AddIgnoredActor(this);
+			params.AddIgnoredActor(this->AttachedObject);
+			params.bDebugQuery = true;
+			float minScale = std::numeric_limits<float>::max();
+			// float minDist = std::numeric_limits<float>::max();
+			FHitResult nearestHit;
+
+			uint32_t vert_cnt = verts->GetNumVertices();
+			for (uint32_t i = 0; i < vert_cnt; ++i) {
+				// World-space vertex coordinate
+				FVector const vert = this->AttachedObject->GetActorLocation()
+					+ this->AttachedObject->GetTransform().TransformVector(verts->VertexPosition(i));
+				FVector end = CamLocation + (vert - CamLocation).GetSafeNormal() * 30000;
+				this->GetWorld()->LineTraceSingleByChannel(hitres, CamLocation, end,
+					ECollisionChannel::ECC_Visibility, params);
+				if (hitres.bBlockingHit) {
+					float curScale = hitres.Distance / (vert - CamLocation).Size();
+					if (curScale < minScale) {
+						nearestHit = hitres;
+						minScale = hitres.Distance / (vert - CamLocation).Size();
+					}
+				}
+			}
+
+			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red,
+				FString::Printf(TEXT("hit dist is %f, state.dist is %f, scale is %.3f"),
+					nearestHit.Distance, this->State.Dist, minScale));
+
+			FVector TargetLocation;
+			if (minScale < std::numeric_limits<float>::max()) {
+				TargetLocation = CamLocation
+					// + CamForward * minScale * this->State.Dist
+					+ CamForward * minScale * (this->AttachedObject->GetActorLocation() - CamLocation).Size()
+					// + CamForward * nearestHit.Distance
+					- this->State.Offset;
+			} else {
+				TargetLocation = CamLocation
+					+ CamForward * this->State.Dist
+					- this->State.Offset;
+			}
+			this->AttachedObject->SetActorLocation(TargetLocation);
+		}
+
+		// auto TargetLocation = CamLocation + CamForward * this->State.Dist;
+		// TargetLocation -= this->State.Offset;
+		// this->AttachedObject->SetActorLocation(TargetLocation);
 	}
 }
 
@@ -305,7 +356,7 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	this->State = FObjectState {
-		(HitLocation - this->FirstPersonCameraComponent->GetComponentLocation()).Size(),
+		(HitLocation - this->GetFirstPersonCameraComponent()->GetComponentLocation()).Size(),
 		this->AttachedObject->GetActorRotation(),
 		HitLocation - centroid,
 	};
