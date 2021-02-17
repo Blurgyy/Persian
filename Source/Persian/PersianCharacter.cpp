@@ -19,8 +19,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 //////////////////////////////////////////////////////////////////////////
 // FObjectState
 FObjectState::FObjectState() {}
-FObjectState::FObjectState(float const& dist, FRotator const& rotation)
-	: Dist{dist}, Rotation{rotation} {}
+FObjectState::FObjectState(float const& dist, FRotator const& rotation, FVector const &offset)
+	: Dist{dist}, Rotation{rotation}, Offset{offset} {}
 
 //////////////////////////////////////////////////////////////////////////
 // APersianCharacter
@@ -31,6 +31,7 @@ APersianCharacter::APersianCharacter()
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
 		FRotator{0, 0, 0},
+		FVector{0, 0, 0},
 	};
 
 	// Set size for collision capsule
@@ -289,6 +290,7 @@ void APersianCharacter::MoveAttachedObject() {
 		auto CamLocation = this->FirstPersonCameraComponent->GetComponentLocation();
 		auto CamForward = this->FirstPersonCameraComponent->GetForwardVector();
 		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
+		TargetLocation -= this->State.Offset;
 		this->AttachedObject->SetActorLocation(TargetLocation);
 	}
 }
@@ -303,8 +305,9 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	this->State = FObjectState {
-		(centroid - this->FirstPersonCameraComponent->GetComponentLocation()).Size(),
+		(HitLocation - this->FirstPersonCameraComponent->GetComponentLocation()).Size(),
 		this->AttachedObject->GetActorRotation(),
+		HitLocation - centroid,
 	};
 }
 void APersianCharacter::Detach() {
@@ -317,6 +320,7 @@ void APersianCharacter::Detach() {
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
 		FRotator{0, 0, 0},
+		FVector{0, 0, 0},
 	};
 }
 AActor* const APersianCharacter::Attaching() const {

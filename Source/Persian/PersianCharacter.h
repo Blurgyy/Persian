@@ -20,10 +20,11 @@ struct FObjectState {
 	GENERATED_USTRUCT_BODY()
 
 	FObjectState();
-	FObjectState(float const& dist, FRotator const& rotation);
+	FObjectState(float const& dist, FRotator const& rotation, FVector const &offset);
 
 	float Dist;
 	FRotator Rotation;
+	FVector Offset;
 };
 
 UCLASS(config=Game)
@@ -165,7 +166,7 @@ public:
 		AActor* AttachedObject;
 
 	UFUNCTION(BlueprintCallable, Category = "Persian")
-		void Attach(AActor* Object);
+		void Attach(AActor* Object, FVector const &HitLocation);
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		void Detach();
 	UFUNCTION(BlueprintCallable, Category = "Persian")
