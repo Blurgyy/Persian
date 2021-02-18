@@ -299,75 +299,45 @@ void APersianCharacter::MoveAttachedObject() {
 }
 void APersianCharacter::SettleAttachedObject() {
 	if (this->AttachedObject != nullptr) {
-		auto CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
-		auto CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
-		FObjectState st{
-			(
-				(this->AttachedObject->GetActorLocation() + this->State.Offset) - CamLocation
-			).Size(),
-			this->State.Rotation,
-			this->State.Offset,
-			this->AttachedObject->GetActorScale3D().X,
-		};
+		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+		FRotator CamRotation = this->GetFirstPersonCameraComponent()->GetComponentRotation();
+		FHitResult hitres;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+		QueryParams.AddIgnoredActor(this->AttachedObject);
 
-		// Get vertices of attached object
-		auto mesh =
-			Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
-		if (mesh->GetNumVertices(0) > 0) {
-			FPositionVertexBuffer const* verts =
-				&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
-			FHitResult hitres;
-			FCollisionQueryParams params;
-			params.AddIgnoredActor(this);
-			params.AddIgnoredActor(this->AttachedObject);
-			float minScale = std::numeric_limits<float>::max();
-			// float minDist = std::numeric_limits<float>::max();
-			FHitResult nearestHit;
+		float minScale = std::numeric_limits<float>::max();
 
-			uint32_t vert_cnt = verts->GetNumVertices();
-			for (uint32_t i = 0; i < vert_cnt; ++i) {
-				// World-space vertex coordinate
-				FVector const vert = this->AttachedObject->GetActorLocation()
-					+ this->AttachedObject->GetTransform().TransformVector(verts->VertexPosition(i));
-				FVector end = CamLocation + (vert - CamLocation).GetSafeNormal() * 30000;
-				this->GetWorld()->LineTraceSingleByChannel(hitres, CamLocation, end,
-					ECollisionChannel::ECC_Visibility, params);
-				DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Red, false, 10);
-				if (hitres.bBlockingHit) {
-					float curScale = hitres.Distance / (vert - CamLocation).Size();
-					if (curScale < minScale) {
-						nearestHit = hitres;
-						minScale = curScale;
-					}
-				}
+		for (FVector const& d : this->Directions) {
+			FVector dir = CamRotation.RotateVector(d).GetSafeNormal();
+			this->GetWorld()->LineTraceSingleByChannel(
+				hitres, CamLocation, CamLocation + dir * 30000,
+				ECollisionChannel::ECC_Visibility,
+				QueryParams
+			);
+			DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
+			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
+				minScale = FMath::Min(minScale, hitres.Distance / d.Size());
 			}
-
-			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red,
-				FString::Printf(TEXT("hit dist is %f, state.dist is %f, scale is %.3f"),
-					nearestHit.Distance, st.Dist, minScale));
-
-			FVector TargetLocation;
-			if (false && minScale < std::numeric_limits<float>::max()) {
-				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("moving object"));
-				TargetLocation = CamLocation
-					+ CamForward * minScale * st.Dist
-					- st.Offset * minScale
-					;
-			} else {
-				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("not moving object"));
-				TargetLocation = CamLocation
-					+ CamForward * st.Dist
-					- st.Offset;
-			}
-			this->AttachedObject->SetActorLocation(TargetLocation, false);
-			this->AttachedObject->SetActorScale3D(FVector(st.Scale * minScale));
-			this->State.Scale = this->AttachedObject->GetActorScale3D().X;
-			this->State.Offset *= minScale;
 		}
 
-		// auto TargetLocation = CamLocation + CamForward * this->State.Dist;
-		// TargetLocation -= this->State.Offset;
-		// this->AttachedObject->SetActorLocation(TargetLocation);
+		FVector TargetLocation;
+		if (minScale < std::numeric_limits<float>::max()) {
+			TargetLocation = CamLocation
+				+ CamForward * minScale * this->State.Dist
+				- this->State.Offset * minScale;
+				;
+		} else {
+			TargetLocation = CamLocation
+				+ CamForward * this->State.Dist
+				- this->State.Offset
+				;
+		}
+		this->AttachedObject->SetActorLocation(TargetLocation);
+		this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * minScale));
+		// this->State.Offset *= minScale;
+		// this->State.Scale *= minScale;
 	}
 }
 
@@ -382,12 +352,29 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	// this->AttachedObject->SetActorEnableCollision(false);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
+	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+	FRotator InvCamRotation = this->GetFirstPersonCameraComponent()->GetComponentRotation().GetInverse();
 	this->State = FObjectState {
-		(HitLocation - this->GetFirstPersonCameraComponent()->GetComponentLocation()).Size(),
+		(HitLocation - CamLocation).Size(),
 		this->AttachedObject->GetActorRotation(),
 		HitLocation - centroid,
 		this->AttachedObject->GetActorScale3D().X,
 	};
+	auto mesh =
+		Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
+	if (mesh->GetNumVertices(0) > 0) {
+		FPositionVertexBuffer const* verts =
+			&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+		for (uint32_t i = 0; i < verts->GetNumVertices(); ++i) {
+			FVector const vert = this->AttachedObject->GetActorLocation()
+				+ this->AttachedObject->GetTransform().TransformVector(verts->VertexPosition(i));
+			this->Directions.Push(
+				InvCamRotation.RotateVector((vert - CamLocation))
+			);
+		}
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
+		FString::Printf(TEXT("%d directions"), this->Directions.Num()));
 }
 void APersianCharacter::Detach() {
 	if (this->AttachedObject == nullptr) {
@@ -405,6 +392,7 @@ void APersianCharacter::Detach() {
 		FVector{0, 0, 0},
 		1,
 	};
+	this->Directions.Empty();
 }
 AActor* const APersianCharacter::Attaching() const {
 	return this->AttachedObject;

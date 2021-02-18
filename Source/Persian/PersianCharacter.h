@@ -164,6 +164,7 @@ public:
 	/**/
 protected:
 	FObjectState State;
+	TArray<FVector> Directions;
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Persian")
 		AActor* AttachedObject;
