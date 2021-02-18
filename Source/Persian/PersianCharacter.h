@@ -21,13 +21,13 @@ struct FObjectState {
 	GENERATED_USTRUCT_BODY()
 
 	FObjectState();
-	FObjectState(float const& dist, FRotator const& rotation, FVector const &offset,
-		float const &scale);
+	FObjectState(double const& dist, FRotator const& rotation, FVector const &offset,
+		double const &scale);
 
-	float Dist;
+	double Dist;
 	FRotator Rotation;
 	FVector Offset;
-	float Scale;
+	double Scale;
 };
 
 UCLASS(config=Game)
@@ -178,7 +178,7 @@ public:
 
 	// Called every frame?
 	virtual void Tick(float DeltaTime) override;
-	void ScaleAttachedObject(float const &RelativeScale);
-	void MoveAttachedObject(float const &Far = 50000);
+	void ScaleAttachedObject(double const &RelativeScale);
+	void MoveAttachedObject(double const &Far = 50000);
 };
 

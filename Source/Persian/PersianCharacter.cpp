@@ -19,8 +19,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 //////////////////////////////////////////////////////////////////////////
 // FObjectState
 FObjectState::FObjectState() {}
-FObjectState::FObjectState(float const& dist, FRotator const& rotation,
-	FVector const &offset, float const &scale)
+FObjectState::FObjectState(double const& dist, FRotator const& rotation,
+	FVector const &offset, double const &scale)
 	: Dist{dist}, Rotation{rotation}, Offset{offset}, Scale{scale} {}
 
 //////////////////////////////////////////////////////////////////////////
@@ -30,7 +30,7 @@ APersianCharacter::APersianCharacter()
 {
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
-		std::numeric_limits<float>::lowest(),
+		std::numeric_limits<double>::lowest(),
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
 		1,
@@ -288,23 +288,26 @@ void APersianCharacter::Tick(float DeltaTime) {
 	this->MoveAttachedObject();
 }
 
-void APersianCharacter::ScaleAttachedObject(float const &RelativeScale) {
+void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
+	/* Disable collision */
+	this->AttachedObject->SetActorEnableCollision(true);
+	/* Update object scale */
+	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 	FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
 	FVector TargetLocation;
 		TargetLocation = CamLocation
-			+ CamForward * RelativeScale * this->State.Dist
-			- this->State.Offset * RelativeScale
+			+ (CamForward * this->State.Dist - this->State.Offset) * RelativeScale
+			// + CamForward * RelativeScale * this->State.Dist
+			// - this->State.Offset * RelativeScale
 			;
-	/* Disable collision */
-	this->AttachedObject->SetActorEnableCollision(true);
+	/* Update object position */
 	this->AttachedObject->SetActorLocation(TargetLocation);
-	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
 	/* Enable collision */
 	this->AttachedObject->SetActorEnableCollision(true);
 }
 
-void APersianCharacter::MoveAttachedObject(float const &Far) {
+void APersianCharacter::MoveAttachedObject(double const &Far) {
 	if (this->AttachedObject != nullptr) {
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
@@ -315,8 +318,9 @@ void APersianCharacter::MoveAttachedObject(float const &Far) {
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
 		QueryParams.AddIgnoredActor(this->AttachedObject);
+		QueryParams.bTraceComplex = true;
 
-		float minScale = std::numeric_limits<float>::max();
+		double minScale = std::numeric_limits<double>::max();
 
 		// FVector center, ext;
 		// this->AttachedObject->GetActorBounds(true, center, ext);
@@ -339,10 +343,9 @@ void APersianCharacter::MoveAttachedObject(float const &Far) {
 			// DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
 				optimhit = hitres;
-				minScale = FMath::Min<float>(minScale, (hitres.Distance - 1e-2) / d.Size());
-			} else {
-				minScale = FMath::Min<float>(minScale, Far / d.Size());
+				minScale = FMath::Min<double>(minScale, (hitres.Distance - 1e-2) / d.Size());
 			}
+			minScale = FMath::Min<double>(minScale, Far / d.Size());
 		}
 
 		this->ScaleAttachedObject(minScale);
@@ -407,7 +410,7 @@ void APersianCharacter::Detach() {
 	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
-		std::numeric_limits<float>::lowest(),
+		std::numeric_limits<double>::lowest(),
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
 		1,
