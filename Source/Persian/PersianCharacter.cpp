@@ -285,19 +285,9 @@ bool APersianCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerI
 void APersianCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	// this->MoveAttachedObject();
-	this->SettleAttachedObject();
+	this->MoveAttachedObject();
 }
 void APersianCharacter::MoveAttachedObject() {
-	if (this->AttachedObject != nullptr) {
-		auto CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
-		auto CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
-		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
-		TargetLocation -= this->State.Offset;
-		this->AttachedObject->SetActorLocation(TargetLocation);
-	}
-}
-void APersianCharacter::SettleAttachedObject() {
 	if (this->AttachedObject != nullptr) {
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
@@ -316,7 +306,7 @@ void APersianCharacter::SettleAttachedObject() {
 				ECollisionChannel::ECC_Visibility,
 				QueryParams
 			);
-			DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
+			// DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
 				minScale = FMath::Min(minScale, hitres.Distance / d.Size());
 			}
@@ -326,7 +316,7 @@ void APersianCharacter::SettleAttachedObject() {
 		if (minScale < std::numeric_limits<float>::max()) {
 			TargetLocation = CamLocation
 				+ CamForward * minScale * this->State.Dist
-				- this->State.Offset * minScale;
+				- this->State.Offset * minScale
 				;
 		} else {
 			TargetLocation = CamLocation
@@ -336,8 +326,6 @@ void APersianCharacter::SettleAttachedObject() {
 		}
 		this->AttachedObject->SetActorLocation(TargetLocation);
 		this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * minScale));
-		// this->State.Offset *= minScale;
-		// this->State.Scale *= minScale;
 	}
 }
 
@@ -373,14 +361,15 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 			);
 		}
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
-		FString::Printf(TEXT("%d directions"), this->Directions.Num()));
+	if (GEngine != nullptr) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
+			FString::Printf(TEXT("%d directions"), this->Directions.Num()));
+	}
 }
 void APersianCharacter::Detach() {
 	if (this->AttachedObject == nullptr) {
 		return;
 	}
-	this->SettleAttachedObject();
 	// Re-enable physics simulation
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
 	// // Re-enable collision

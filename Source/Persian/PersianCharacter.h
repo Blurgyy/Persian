@@ -179,6 +179,5 @@ public:
 	// Called every frame?
 	virtual void Tick(float Deltatime) override;
 	void MoveAttachedObject();
-	void SettleAttachedObject();
 };
 
