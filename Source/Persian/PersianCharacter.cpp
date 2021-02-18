@@ -19,8 +19,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 //////////////////////////////////////////////////////////////////////////
 // FObjectState
 FObjectState::FObjectState() {}
-FObjectState::FObjectState(float const& dist, FRotator const& rotation, FVector const &offset)
-	: Dist{dist}, Rotation{rotation}, Offset{offset} {}
+FObjectState::FObjectState(float const& dist, FRotator const& rotation,
+	FVector const &offset, float const &scale)
+	: Dist{dist}, Rotation{rotation}, Offset{offset}, Scale{scale} {}
 
 //////////////////////////////////////////////////////////////////////////
 // APersianCharacter
@@ -32,6 +33,7 @@ APersianCharacter::APersianCharacter()
 		std::numeric_limits<float>::lowest(),
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
+		1,
 	};
 
 	// Set size for collision capsule
@@ -283,15 +285,34 @@ bool APersianCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerI
 void APersianCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	this->MoveAttachedObject();
+	// this->MoveAttachedObject();
+	this->SettleAttachedObject();
 }
 void APersianCharacter::MoveAttachedObject() {
 	if (this->AttachedObject != nullptr) {
 		auto CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 		auto CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+		auto TargetLocation = CamLocation + CamForward * this->State.Dist;
+		TargetLocation -= this->State.Offset;
+		this->AttachedObject->SetActorLocation(TargetLocation);
+	}
+}
+void APersianCharacter::SettleAttachedObject() {
+	if (this->AttachedObject != nullptr) {
+		auto CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+		auto CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+		FObjectState st{
+			(
+				(this->AttachedObject->GetActorLocation() + this->State.Offset) - CamLocation
+			).Size(),
+			this->State.Rotation,
+			this->State.Offset,
+			this->AttachedObject->GetActorScale3D().X,
+		};
 
 		// Get vertices of attached object
-		auto mesh = Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
+		auto mesh =
+			Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
 		if (mesh->GetNumVertices(0) > 0) {
 			FPositionVertexBuffer const* verts =
 				&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
@@ -299,7 +320,6 @@ void APersianCharacter::MoveAttachedObject() {
 			FCollisionQueryParams params;
 			params.AddIgnoredActor(this);
 			params.AddIgnoredActor(this->AttachedObject);
-			params.bDebugQuery = true;
 			float minScale = std::numeric_limits<float>::max();
 			// float minDist = std::numeric_limits<float>::max();
 			FHitResult nearestHit;
@@ -312,32 +332,37 @@ void APersianCharacter::MoveAttachedObject() {
 				FVector end = CamLocation + (vert - CamLocation).GetSafeNormal() * 30000;
 				this->GetWorld()->LineTraceSingleByChannel(hitres, CamLocation, end,
 					ECollisionChannel::ECC_Visibility, params);
+				DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Red, false, 10);
 				if (hitres.bBlockingHit) {
 					float curScale = hitres.Distance / (vert - CamLocation).Size();
 					if (curScale < minScale) {
 						nearestHit = hitres;
-						minScale = hitres.Distance / (vert - CamLocation).Size();
+						minScale = curScale;
 					}
 				}
 			}
 
 			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red,
 				FString::Printf(TEXT("hit dist is %f, state.dist is %f, scale is %.3f"),
-					nearestHit.Distance, this->State.Dist, minScale));
+					nearestHit.Distance, st.Dist, minScale));
 
 			FVector TargetLocation;
-			if (minScale < std::numeric_limits<float>::max()) {
+			if (false && minScale < std::numeric_limits<float>::max()) {
+				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("moving object"));
 				TargetLocation = CamLocation
-					// + CamForward * minScale * this->State.Dist
-					+ CamForward * minScale * (this->AttachedObject->GetActorLocation() - CamLocation).Size()
-					// + CamForward * nearestHit.Distance
-					- this->State.Offset;
+					+ CamForward * minScale * st.Dist
+					- st.Offset * minScale
+					;
 			} else {
+				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, TEXT("not moving object"));
 				TargetLocation = CamLocation
-					+ CamForward * this->State.Dist
-					- this->State.Offset;
+					+ CamForward * st.Dist
+					- st.Offset;
 			}
-			this->AttachedObject->SetActorLocation(TargetLocation);
+			this->AttachedObject->SetActorLocation(TargetLocation, false);
+			this->AttachedObject->SetActorScale3D(FVector(st.Scale * minScale));
+			this->State.Scale = this->AttachedObject->GetActorScale3D().X;
+			this->State.Offset *= minScale;
 		}
 
 		// auto TargetLocation = CamLocation + CamForward * this->State.Dist;
@@ -347,31 +372,38 @@ void APersianCharacter::MoveAttachedObject() {
 }
 
 void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
-	if (Object == nullptr) {
+	if (Object == nullptr || !Object->IsRootComponentMovable()) {
 		return;
 	}
 	this->AttachedObject = Object;
 	// Disable physics simulation
 	this->AttachedObject->DisableComponentsSimulatePhysics();
+	// // Disable collision
+	// this->AttachedObject->SetActorEnableCollision(false);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	this->State = FObjectState {
 		(HitLocation - this->GetFirstPersonCameraComponent()->GetComponentLocation()).Size(),
 		this->AttachedObject->GetActorRotation(),
 		HitLocation - centroid,
+		this->AttachedObject->GetActorScale3D().X,
 	};
 }
 void APersianCharacter::Detach() {
 	if (this->AttachedObject == nullptr) {
 		return;
 	}
+	this->SettleAttachedObject();
 	// Re-enable physics simulation
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
+	// // Re-enable collision
+	// this->AttachedObject->SetActorEnableCollision(true);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
+		1,
 	};
 }
 AActor* const APersianCharacter::Attaching() const {

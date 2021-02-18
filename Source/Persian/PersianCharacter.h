@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Actor.h"
+#include "DrawDebugHelpers.h"
 #include "PersianCharacter.generated.h"
 
 class UInputComponent;
@@ -20,11 +21,13 @@ struct FObjectState {
 	GENERATED_USTRUCT_BODY()
 
 	FObjectState();
-	FObjectState(float const& dist, FRotator const& rotation, FVector const &offset);
+	FObjectState(float const& dist, FRotator const& rotation, FVector const &offset,
+		float const &scale);
 
 	float Dist;
 	FRotator Rotation;
 	FVector Offset;
+	float Scale;
 };
 
 UCLASS(config=Game)
@@ -175,5 +178,6 @@ public:
 	// Called every frame?
 	virtual void Tick(float Deltatime) override;
 	void MoveAttachedObject();
+	void SettleAttachedObject();
 };
 
