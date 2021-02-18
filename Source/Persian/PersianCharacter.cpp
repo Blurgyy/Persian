@@ -301,6 +301,17 @@ void APersianCharacter::MoveAttachedObject() {
 
 		float minScale = std::numeric_limits<float>::max();
 
+		// FVector center, ext;
+		// this->AttachedObject->GetActorBounds(true, center, ext);
+		// FVector fwd = (center - CamLocation).GetSafeNormal();
+		// FQuat rot = this->AttachedObject->GetActorRotation().Quaternion();
+		// FCollisionShape shape = FCollisionShape::MakeBox(ext);
+		// this->GetWorld()->SweepSingleByChannel(
+			// hitres, CamLocation, CamLocation + fwd * 30000,
+			// rot, ECollisionChannel::ECC_Visibility, shape,
+			// QueryParams
+		// );
+
 		for (FVector const& d : this->Directions) {
 			FVector dir = CamRotation.RotateVector(d).GetSafeNormal();
 			this->GetWorld()->LineTraceSingleByChannel(
@@ -311,7 +322,7 @@ void APersianCharacter::MoveAttachedObject() {
 			// DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
 				optimhit = hitres;
-				minScale = FMath::Min(minScale, hitres.Distance / d.Size());
+				minScale = FMath::Min<float>(minScale, (hitres.Distance - 1e-2) / d.Size());
 			}
 		}
 
@@ -327,13 +338,17 @@ void APersianCharacter::MoveAttachedObject() {
 				- this->State.Offset
 				;
 		}
+		// Disable collision
+		this->AttachedObject->SetActorEnableCollision(true);
 		this->AttachedObject->SetActorLocation(TargetLocation);
 		this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * minScale));
+		// Enable collision
+		this->AttachedObject->SetActorEnableCollision(true);
 	}
 }
 
 void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
-	if (Object == nullptr || !Object->IsRootComponentMovable()) {
+	if (Object == nullptr || Object->GetRootComponent()->Mobility == EComponentMobility::Static) {
 		return;
 	}
 	this->AttachedObject = Object;
@@ -341,6 +356,8 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	this->AttachedObject->DisableComponentsSimulatePhysics();
 	// // Disable collision
 	// this->AttachedObject->SetActorEnableCollision(false);
+	// // Enable movement
+	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -351,17 +368,20 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 		HitLocation - centroid,
 		this->AttachedObject->GetActorScale3D().X,
 	};
-	auto mesh =
-		Cast<UStaticMeshComponent>(this->AttachedObject->GetRootComponent())->GetStaticMesh();
-	if (mesh->GetNumVertices(0) > 0) {
-		FPositionVertexBuffer const* verts =
-			&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
-		for (uint32_t i = 0; i < verts->GetNumVertices(); ++i) {
-			FVector const vert = this->AttachedObject->GetActorLocation()
-				+ this->AttachedObject->GetTransform().TransformVector(verts->VertexPosition(i));
-			this->Directions.Push(
-				InvCamRotation.RotateVector((vert - CamLocation))
-			);
+	TArray<UStaticMeshComponent *> meshes;
+	this->AttachedObject->GetComponents<UStaticMeshComponent>(meshes, true);
+	for (auto meshcomp : meshes) {
+		auto mesh = meshcomp->GetStaticMesh();
+		if (mesh->GetNumVertices(0) > 0) {
+			FPositionVertexBuffer const* verts =
+				&mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+			for (uint32_t i = 0; i < verts->GetNumVertices(); ++i) {
+				FVector const vert = this->AttachedObject->GetActorLocation()
+					+ this->AttachedObject->GetTransform().TransformVector(verts->VertexPosition(i));
+				this->Directions.Push(
+					InvCamRotation.RotateVector((vert - CamLocation))
+				);
+			}
 		}
 	}
 	if (GEngine != nullptr) {
@@ -377,6 +397,8 @@ void APersianCharacter::Detach() {
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
 	// // Re-enable collision
 	// this->AttachedObject->SetActorEnableCollision(true);
+	// // Disable movement
+	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
