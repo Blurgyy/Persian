@@ -296,11 +296,11 @@ void APersianCharacter::ScaleAttachedObject(float const &RelativeScale) {
 			+ CamForward * RelativeScale * this->State.Dist
 			- this->State.Offset * RelativeScale
 			;
-	// Disable collision
+	/* Disable collision */
 	this->AttachedObject->SetActorEnableCollision(true);
 	this->AttachedObject->SetActorLocation(TargetLocation);
 	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
-	// Enable collision
+	/* Enable collision */
 	this->AttachedObject->SetActorEnableCollision(true);
 }
 
@@ -354,12 +354,12 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 		return;
 	}
 	this->AttachedObject = Object;
-	// Disable physics simulation
+	/* Disable physics simulation */
 	this->AttachedObject->DisableComponentsSimulatePhysics();
-	// // Disable collision
+	/* Disable collision */
 	// this->AttachedObject->SetActorEnableCollision(false);
-	// // Enable movement
-	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
+	/* Enable movement */
+	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -390,7 +390,7 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
 			FString::Printf(TEXT("%d directions"), this->Directions.Num()));
 	}
-	// Do not attach an object with no body
+	/* Do not attach an object with no body */
 	if (this->Directions.Num() == 0) {
 		this->Detach();
 	}
@@ -399,12 +399,12 @@ void APersianCharacter::Detach() {
 	if (this->AttachedObject == nullptr) {
 		return;
 	}
-	// Re-enable physics simulation
+	/* Re-enable physics simulation */
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
-	// // Re-enable collision
+	/* Re-enable collision */
 	// this->AttachedObject->SetActorEnableCollision(true);
-	// // Disable movement
-	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
+	/* Disable movement */
+	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<float>::lowest(),
