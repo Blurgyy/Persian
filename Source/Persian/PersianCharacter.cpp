@@ -292,7 +292,9 @@ void APersianCharacter::MoveAttachedObject() {
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
 		FRotator CamRotation = this->GetFirstPersonCameraComponent()->GetComponentRotation();
-		FHitResult hitres;
+		FHitResult hitres, optimhit;
+		optimhit.bBlockingHit = false;
+		optimhit.bStartPenetrating = false;
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
 		QueryParams.AddIgnoredActor(this->AttachedObject);
@@ -308,12 +310,13 @@ void APersianCharacter::MoveAttachedObject() {
 			);
 			// DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
+				optimhit = hitres;
 				minScale = FMath::Min(minScale, hitres.Distance / d.Size());
 			}
 		}
 
 		FVector TargetLocation;
-		if (minScale < std::numeric_limits<float>::max()) {
+		if (optimhit.bBlockingHit && !optimhit.bStartPenetrating) {
 			TargetLocation = CamLocation
 				+ CamForward * minScale * this->State.Dist
 				- this->State.Offset * minScale
