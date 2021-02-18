@@ -287,7 +287,24 @@ void APersianCharacter::Tick(float DeltaTime) {
 
 	this->MoveAttachedObject();
 }
-void APersianCharacter::MoveAttachedObject() {
+
+void APersianCharacter::ScaleAttachedObject(float const &RelativeScale) {
+	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+	FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+	FVector TargetLocation;
+		TargetLocation = CamLocation
+			+ CamForward * RelativeScale * this->State.Dist
+			- this->State.Offset * RelativeScale
+			;
+	// Disable collision
+	this->AttachedObject->SetActorEnableCollision(true);
+	this->AttachedObject->SetActorLocation(TargetLocation);
+	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
+	// Enable collision
+	this->AttachedObject->SetActorEnableCollision(true);
+}
+
+void APersianCharacter::MoveAttachedObject(float const &Far) {
 	if (this->AttachedObject != nullptr) {
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
@@ -315,7 +332,7 @@ void APersianCharacter::MoveAttachedObject() {
 		for (FVector const& d : this->Directions) {
 			FVector dir = CamRotation.RotateVector(d).GetSafeNormal();
 			this->GetWorld()->LineTraceSingleByChannel(
-				hitres, CamLocation, CamLocation + dir * 30000,
+				hitres, CamLocation, CamLocation + dir * Far,
 				ECollisionChannel::ECC_Visibility,
 				QueryParams
 			);
@@ -323,27 +340,12 @@ void APersianCharacter::MoveAttachedObject() {
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
 				optimhit = hitres;
 				minScale = FMath::Min<float>(minScale, (hitres.Distance - 1e-2) / d.Size());
+			} else {
+				minScale = FMath::Min<float>(minScale, Far / d.Size());
 			}
 		}
 
-		FVector TargetLocation;
-		if (optimhit.bBlockingHit && !optimhit.bStartPenetrating) {
-			TargetLocation = CamLocation
-				+ CamForward * minScale * this->State.Dist
-				- this->State.Offset * minScale
-				;
-		} else {
-			TargetLocation = CamLocation
-				+ CamForward * this->State.Dist
-				- this->State.Offset
-				;
-		}
-		// Disable collision
-		this->AttachedObject->SetActorEnableCollision(true);
-		this->AttachedObject->SetActorLocation(TargetLocation);
-		this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * minScale));
-		// Enable collision
-		this->AttachedObject->SetActorEnableCollision(true);
+		this->ScaleAttachedObject(minScale);
 	}
 }
 
@@ -387,6 +389,10 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	if (GEngine != nullptr) {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
 			FString::Printf(TEXT("%d directions"), this->Directions.Num()));
+	}
+	// Do not attach an object with no body
+	if (this->Directions.Num() == 0) {
+		this->Detach();
 	}
 }
 void APersianCharacter::Detach() {

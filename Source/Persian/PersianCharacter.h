@@ -177,7 +177,8 @@ public:
 		AActor* const Attaching() const;
 
 	// Called every frame?
-	virtual void Tick(float Deltatime) override;
-	void MoveAttachedObject();
+	virtual void Tick(float DeltaTime) override;
+	void ScaleAttachedObject(float const &RelativeScale);
+	void MoveAttachedObject(float const &Far = 50000);
 };
 
