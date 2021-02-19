@@ -20,9 +20,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 // FObjectState
 FObjectState::FObjectState() {}
 	FObjectState::FObjectState(double const& dist, FRotator const& cam_rotation,
-		FRotator const &object_rotation, FVector const &offset, double const &scale)
-		: Dist{ dist }, CamRotation{ cam_rotation }, ObjectRotation{object_rotation},
-		  Offset{ offset }, Scale{ scale } {}
+		FRotator const &object_rotation, FVector const &offset, FVector const &scale,
+		EComponentMobility::Type const &mobility)
+		: Dist{ dist }, CamRotation{ cam_rotation }, ObjectRotation{ object_rotation },
+		  Offset{ offset }, Scale{ scale }, Mobility{ mobility } {}
 
 //////////////////////////////////////////////////////////////////////////
 // APersianCharacter
@@ -35,7 +36,8 @@ APersianCharacter::APersianCharacter()
 		FRotator{0, 0, 0},
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
-		1,
+		FVector{1},
+		EComponentMobility::Movable,
 	};
 
 	// Set size for collision capsule
@@ -319,7 +321,7 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	/* Disable collision */
 	this->AttachedObject->SetActorEnableCollision(false);
 	/* Update object scale */
-	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
+	this->AttachedObject->SetActorScale3D(this->State.Scale * RelativeScale);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 	FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
 	FVector RotatedOffset = FRotator(
@@ -399,8 +401,6 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	this->AttachedObject->DisableComponentsSimulatePhysics();
 	/* Disable collision */
 	// this->AttachedObject->SetActorEnableCollision(false);
-	/* Enable movement */
-	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -411,8 +411,11 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 		this->GetFirstPersonCameraComponent()->GetComponentRotation(),
 		this->AttachedObject->GetActorRotation(),
 		HitLocation - centroid,
-		this->AttachedObject->GetActorScale3D().X,
+		this->AttachedObject->GetActorScale3D(),
+		this->AttachedObject->GetRootComponent()->Mobility,
 	};
+	/* Enable movement */
+	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 	TArray<UStaticMeshComponent *> meshes;
 	this->AttachedObject->GetComponents<UStaticMeshComponent>(meshes, true);
 	for (auto meshcomp : meshes) {
@@ -447,14 +450,15 @@ void APersianCharacter::Detach() {
 	/* Re-enable collision */
 	// this->AttachedObject->SetActorEnableCollision(true);
 	/* Disable movement */
-	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
+	this->AttachedObject->GetRootComponent()->SetMobility(this->State.Mobility);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<double>::lowest(),
 		FRotator{0, 0, 0},
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
-		1,
+		FVector{1},
+		EComponentMobility::Movable,
 	};
 	this->Directions.Empty();
 }

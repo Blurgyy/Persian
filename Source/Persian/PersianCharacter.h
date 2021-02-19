@@ -22,13 +22,15 @@ struct FObjectState {
 
 	FObjectState();
 	FObjectState(double const& dist, FRotator const& cam_rotation,
-		FRotator const &object_rotation, FVector const &offset, double const &scale);
+		FRotator const &object_rotation, FVector const &offset, FVector const &scale,
+		EComponentMobility::Type const &mobility);
 
 	double Dist;
 	FRotator CamRotation;
 	FRotator ObjectRotation;
 	FVector Offset;
-	double Scale;
+	FVector Scale;
+	EComponentMobility::Type Mobility;
 };
 
 UCLASS(config=Game)
