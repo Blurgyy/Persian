@@ -332,16 +332,15 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 			// + CamForward * RelativeScale * this->State.Dist
 			// - this->State.Offset * RelativeScale
 			;
-	/* Update object position */
-	this->AttachedObject->SetActorLocation(TargetLocation);
-	/* Update object orientation */
-	this->AttachedObject->SetActorRotation(
-		FRotator(
-			FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
-			* FQuat(this->State.CamRotation.GetInverse())
-			* FQuat(this->State.ObjectRotation)
-		)
+	FRotator TargetRotation = FRotator(
+		FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
+		* FQuat(this->State.CamRotation.GetInverse())
+		* FQuat(this->State.ObjectRotation)
 	);
+
+	/* Update object position and orientation */
+	this->AttachedObject->TeleportTo(TargetLocation, TargetRotation);
+
 	/* Enable collision */
 	this->AttachedObject->SetActorEnableCollision(true);
 }
