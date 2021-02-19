@@ -19,9 +19,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 //////////////////////////////////////////////////////////////////////////
 // FObjectState
 FObjectState::FObjectState() {}
-FObjectState::FObjectState(double const& dist, FRotator const& rotation,
-	FVector const &offset, double const &scale)
-	: Dist{dist}, Rotation{rotation}, Offset{offset}, Scale{scale} {}
+	FObjectState::FObjectState(double const& dist, FRotator const& cam_rotation,
+		FRotator const &object_rotation, FVector const &offset, double const &scale)
+		: Dist{ dist }, CamRotation{ cam_rotation }, ObjectRotation{object_rotation},
+		  Offset{ offset }, Scale{ scale } {}
 
 //////////////////////////////////////////////////////////////////////////
 // APersianCharacter
@@ -31,6 +32,7 @@ APersianCharacter::APersianCharacter()
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<double>::lowest(),
+		FRotator{0, 0, 0},
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
 		1,
@@ -320,9 +322,13 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 	FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+	FVector RotatedOffset = FRotator(
+		FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
+		* FQuat(this->State.CamRotation.GetInverse())
+	).RotateVector(this->State.Offset);
 	FVector TargetLocation;
 		TargetLocation = CamLocation
-			+ (CamForward * this->State.Dist - this->State.Offset) * RelativeScale
+			+ (CamForward * this->State.Dist - RotatedOffset) * RelativeScale
 			// + CamForward * RelativeScale * this->State.Dist
 			// - this->State.Offset * RelativeScale
 			;
@@ -331,8 +337,9 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	/* Update object orientation */
 	this->AttachedObject->SetActorRotation(
 		FRotator(
-			FQuat(this->GetActorRotation())
-			* FQuat(this->State.Rotation)
+			FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
+			* FQuat(this->State.CamRotation.GetInverse())
+			* FQuat(this->State.ObjectRotation)
 		)
 	);
 	/* Enable collision */
@@ -399,13 +406,11 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 	FRotator InvCamRotation = this->GetFirstPersonCameraComponent()->GetComponentRotation().GetInverse();
-	this->State = FObjectState {
+	this->State = FObjectState{
 		(HitLocation - CamLocation).Size(),
 		// this->GetActorRotation().GetInverse() + this->AttachedObject->GetActorRotation(),
-		FRotator(
-			FQuat(this->GetActorRotation().GetInverse())
-			* FQuat(this->AttachedObject->GetActorRotation())
-		),
+		this->GetFirstPersonCameraComponent()->GetComponentRotation(),
+		this->AttachedObject->GetActorRotation(),
 		HitLocation - centroid,
 		this->AttachedObject->GetActorScale3D().X,
 	};
@@ -447,6 +452,7 @@ void APersianCharacter::Detach() {
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<double>::lowest(),
+		FRotator{0, 0, 0},
 		FRotator{0, 0, 0},
 		FVector{0, 0, 0},
 		1,

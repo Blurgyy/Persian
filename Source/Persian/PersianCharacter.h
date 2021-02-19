@@ -21,11 +21,12 @@ struct FObjectState {
 	GENERATED_USTRUCT_BODY()
 
 	FObjectState();
-	FObjectState(double const& dist, FRotator const& rotation, FVector const &offset,
-		double const &scale);
+	FObjectState(double const& dist, FRotator const& cam_rotation,
+		FRotator const &object_rotation, FVector const &offset, double const &scale);
 
 	double Dist;
-	FRotator Rotation;
+	FRotator CamRotation;
+	FRotator ObjectRotation;
 	FVector Offset;
 	double Scale;
 };
