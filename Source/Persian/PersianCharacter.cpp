@@ -382,7 +382,7 @@ void APersianCharacter::MoveAttachedObject(double const &Far) {
 			// DrawDebugLine(this->GetWorld(), CamLocation, hitres.Location, FColor::Yellow, false, 5);
 			if (hitres.bBlockingHit && !hitres.bStartPenetrating) {
 				optimhit = hitres;
-				minScale = FMath::Min<double>(minScale, (hitres.Distance - 1e-2) / d.Size());
+				minScale = FMath::Min<double>(minScale, (hitres.Distance - 1) / d.Size());
 			}
 			minScale = FMath::Min<double>(minScale, Far / d.Size());
 		}
