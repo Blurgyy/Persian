@@ -167,6 +167,16 @@ void APersianCharacter::OnFire()
 			AnimInstance->Montage_Play(FireAnimation, 1.f);
 		}
 	}
+	if (this->AttachedObject == nullptr) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to attach object .."));
+		FHitResult res = this->VisionHit();
+		if (res.Actor.Get() != nullptr) {
+			this->Attach(res.Actor.Get(), res.Location);
+		}
+	} else {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to dettach object .."));
+		this->Detach();
+	}
 }
 
 void APersianCharacter::OnResetVR()
@@ -282,6 +292,21 @@ bool APersianCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerI
 	return false;
 }
 
+FHitResult APersianCharacter::VisionHit(double const &Far) const {
+	FHitResult ret;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.bTraceComplex = true;
+	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+	FVector Forward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+	this->GetWorld()->LineTraceSingleByChannel(ret,
+		CamLocation, CamLocation + Forward * Far,
+		ECollisionChannel::ECC_Visibility,
+		QueryParams
+	);
+	return ret;
+}
+
 void APersianCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
@@ -303,6 +328,13 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 			;
 	/* Update object position */
 	this->AttachedObject->SetActorLocation(TargetLocation);
+	/* Update object orientation */
+	this->AttachedObject->SetActorRotation(
+		FRotator(
+			FQuat(this->GetActorRotation())
+			* FQuat(this->State.Rotation)
+		)
+	);
 	/* Enable collision */
 	this->AttachedObject->SetActorEnableCollision(true);
 }
@@ -362,14 +394,18 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	/* Disable collision */
 	// this->AttachedObject->SetActorEnableCollision(false);
 	/* Enable movement */
-	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
+	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
 	FRotator InvCamRotation = this->GetFirstPersonCameraComponent()->GetComponentRotation().GetInverse();
 	this->State = FObjectState {
 		(HitLocation - CamLocation).Size(),
-		this->AttachedObject->GetActorRotation(),
+		// this->GetActorRotation().GetInverse() + this->AttachedObject->GetActorRotation(),
+		FRotator(
+			FQuat(this->GetActorRotation().GetInverse())
+			* FQuat(this->AttachedObject->GetActorRotation())
+		),
 		HitLocation - centroid,
 		this->AttachedObject->GetActorScale3D().X,
 	};
@@ -407,7 +443,7 @@ void APersianCharacter::Detach() {
 	/* Re-enable collision */
 	// this->AttachedObject->SetActorEnableCollision(true);
 	/* Disable movement */
-	this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
+	// this->AttachedObject->GetRootComponent()->SetMobility(EComponentMobility::Stationary);
 	this->AttachedObject = nullptr;
 	this->State = FObjectState {
 		std::numeric_limits<double>::lowest(),

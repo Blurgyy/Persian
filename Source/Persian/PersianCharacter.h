@@ -176,6 +176,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		AActor* const Attaching() const;
 
+	FHitResult VisionHit(double const &Far = 50000) const;
 	// Called every frame?
 	virtual void Tick(float DeltaTime) override;
 	void ScaleAttachedObject(double const &RelativeScale);
