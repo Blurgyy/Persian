@@ -317,7 +317,7 @@ void APersianCharacter::Tick(float DeltaTime) {
 
 void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	/* Disable collision */
-	this->AttachedObject->SetActorEnableCollision(true);
+	this->AttachedObject->SetActorEnableCollision(false);
 	/* Update object scale */
 	this->AttachedObject->SetActorScale3D(FVector(this->State.Scale * RelativeScale));
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
