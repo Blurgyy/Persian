@@ -176,7 +176,7 @@ void APersianCharacter::OnFire()
 			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
 				TEXT("Attempting to attach object .."));
 		}
-		FHitResult res = this->VisionHit(500);
+		FHitResult res = this->VisionHit(1500);
 		if (res.Actor.Get() != nullptr) {
 			this->Attach(res.Actor.Get(), res.Location);
 			this->AttachedObject->SetActorEnableCollision(false);
@@ -187,7 +187,7 @@ void APersianCharacter::OnFire()
 			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
 				TEXT("Attempting to detach object .."));
 		}
-		this->MoveAttachedObject(500);
+		this->MoveAttachedObject();
 		this->AttachedObject->SetActorEnableCollision(true);
 		this->Detach();
 	}
@@ -320,7 +320,7 @@ FHitResult APersianCharacter::VisionHit(double const &Far) const {
 	);
 	if (GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Black,
-			FString::Printf(TEXT("Hit distance is %f\n"), ret.Distance));
+			FString::Printf(TEXT("Hit distance is %f"), ret.Distance));
 	}
 	return ret;
 }
