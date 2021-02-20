@@ -176,12 +176,13 @@ void APersianCharacter::OnFire()
 		FHitResult res = this->VisionHit();
 		if (res.Actor.Get() != nullptr) {
 			this->Attach(res.Actor.Get(), res.Location);
-			this->ScaleAttachedObject(169.0 / this->State.Dist);
-			// this->MoveAttachedObject();
+			this->AttachedObject->SetActorEnableCollision(false);
+			this->ScaleAttachedObject(30.0 / this->State.Dist);
 		}
 	} else {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to detach object .."));
 		this->MoveAttachedObject();
+		this->AttachedObject->SetActorEnableCollision(true);
 		this->Detach();
 	}
 }
@@ -317,13 +318,13 @@ FHitResult APersianCharacter::VisionHit(double const &Far) const {
 void APersianCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	this->ScaleAttachedObject(169.0 / this->State.Dist);
+	this->ScaleAttachedObject(30.0 / this->State.Dist);
 }
 
 void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	if (this->AttachedObject != nullptr) {
 		/* Disable collision */
-		this->AttachedObject->SetActorEnableCollision(false);
+		// this->AttachedObject->SetActorEnableCollision(false);
 		/* Update object scale */
 		this->AttachedObject->SetActorScale3D(this->State.Scale * RelativeScale);
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -348,7 +349,7 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 		this->AttachedObject->TeleportTo(TargetLocation, TargetRotation);
 
 		/* Enable collision */
-		this->AttachedObject->SetActorEnableCollision(true);
+		// this->AttachedObject->SetActorEnableCollision(true);
 	}
 }
 
@@ -404,8 +405,6 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	this->AttachedObject = Object;
 	/* Disable physics simulation */
 	this->AttachedObject->DisableComponentsSimulatePhysics();
-	/* Disable collision */
-	// this->AttachedObject->SetActorEnableCollision(false);
 	FVector centroid, _;
 	this->AttachedObject->GetActorBounds(true, centroid, _);
 	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -452,8 +451,6 @@ void APersianCharacter::Detach() {
 	}
 	/* Re-enable physics simulation */
 	Cast<UPrimitiveComponent>(this->AttachedObject->GetRootComponent())->SetSimulatePhysics(true);
-	/* Re-enable collision */
-	// this->AttachedObject->SetActorEnableCollision(true);
 	/* Disable movement */
 	this->AttachedObject->GetRootComponent()->SetMobility(this->State.Mobility);
 	this->AttachedObject = nullptr;
