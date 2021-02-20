@@ -180,7 +180,7 @@ void APersianCharacter::OnFire()
 			// this->MoveAttachedObject();
 		}
 	} else {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to dettach object .."));
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to detach object .."));
 		this->MoveAttachedObject();
 		this->Detach();
 	}
