@@ -172,16 +172,22 @@ void APersianCharacter::OnFire()
 		}
 	}
 	if (this->AttachedObject == nullptr) {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to attach object .."));
-		FHitResult res = this->VisionHit();
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
+				TEXT("Attempting to attach object .."));
+		}
+		FHitResult res = this->VisionHit(500);
 		if (res.Actor.Get() != nullptr) {
 			this->Attach(res.Actor.Get(), res.Location);
 			this->AttachedObject->SetActorEnableCollision(false);
 			this->ScaleAttachedObject(30.0 / this->State.Dist);
 		}
 	} else {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to detach object .."));
-		this->MoveAttachedObject();
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
+				TEXT("Attempting to detach object .."));
+		}
+		this->MoveAttachedObject(500);
 		this->AttachedObject->SetActorEnableCollision(true);
 		this->Detach();
 	}
@@ -312,6 +318,10 @@ FHitResult APersianCharacter::VisionHit(double const &Far) const {
 		ECollisionChannel::ECC_Visibility,
 		QueryParams
 	);
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Black,
+			FString::Printf(TEXT("Hit distance is %f\n"), ret.Distance));
+	}
 	return ret;
 }
 
@@ -420,7 +430,7 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 			}
 		}
 	}
-	if (GEngine != nullptr) {
+	if (GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow,
 			FString::Printf(TEXT("%d directions"), this->Directions.Num()));
 	}
