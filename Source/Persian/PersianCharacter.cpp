@@ -176,9 +176,12 @@ void APersianCharacter::OnFire()
 		FHitResult res = this->VisionHit();
 		if (res.Actor.Get() != nullptr) {
 			this->Attach(res.Actor.Get(), res.Location);
+			this->ScaleAttachedObject(169.0 / this->State.Dist);
+			// this->MoveAttachedObject();
 		}
 	} else {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Attempting to dettach object .."));
+		this->MoveAttachedObject();
 		this->Detach();
 	}
 }
@@ -314,37 +317,39 @@ FHitResult APersianCharacter::VisionHit(double const &Far) const {
 void APersianCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	this->MoveAttachedObject();
+	this->ScaleAttachedObject(169.0 / this->State.Dist);
 }
 
 void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
-	/* Disable collision */
-	this->AttachedObject->SetActorEnableCollision(false);
-	/* Update object scale */
-	this->AttachedObject->SetActorScale3D(this->State.Scale * RelativeScale);
-	FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
-	FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
-	FVector RotatedOffset = FRotator(
-		FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
-		* FQuat(this->State.CamRotation.GetInverse())
-	).RotateVector(this->State.Offset);
-	FVector TargetLocation;
+	if (this->AttachedObject != nullptr) {
+		/* Disable collision */
+		this->AttachedObject->SetActorEnableCollision(false);
+		/* Update object scale */
+		this->AttachedObject->SetActorScale3D(this->State.Scale * RelativeScale);
+		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
+		FVector CamForward = this->GetFirstPersonCameraComponent()->GetForwardVector();
+		FVector RotatedOffset = FRotator(
+			FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
+			* FQuat(this->State.CamRotation.GetInverse())
+		).RotateVector(this->State.Offset);
+		FVector TargetLocation;
 		TargetLocation = CamLocation
 			+ (CamForward * this->State.Dist - RotatedOffset) * RelativeScale
 			// + CamForward * RelativeScale * this->State.Dist
 			// - this->State.Offset * RelativeScale
 			;
-	FRotator TargetRotation = FRotator(
-		FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
-		* FQuat(this->State.CamRotation.GetInverse())
-		* FQuat(this->State.ObjectRotation)
-	);
+		FRotator TargetRotation = FRotator(
+			FQuat(this->GetFirstPersonCameraComponent()->GetComponentRotation())
+			* FQuat(this->State.CamRotation.GetInverse())
+			* FQuat(this->State.ObjectRotation)
+		);
 
-	/* Update object position and orientation */
-	this->AttachedObject->TeleportTo(TargetLocation, TargetRotation);
+		/* Update object position and orientation */
+		this->AttachedObject->TeleportTo(TargetLocation, TargetRotation);
 
-	/* Enable collision */
-	this->AttachedObject->SetActorEnableCollision(true);
+		/* Enable collision */
+		this->AttachedObject->SetActorEnableCollision(true);
+	}
 }
 
 void APersianCharacter::MoveAttachedObject(double const &Far) {
