@@ -17,9 +17,15 @@ public:
 	/** Primary draw call for the HUD */
 	virtual void DrawHUD() override;
 
+	UFUNCTION(BlueprintCallable, Category = Persian)
+		void MissionComplete();
+
 private:
 	/** Crosshair asset pointer */
 	class UTexture2D* CrosshairTex;
+
+	/** Thumbs up asset pointer */
+	class UTexture2D* ThumbsUpTex;
 
 };
 

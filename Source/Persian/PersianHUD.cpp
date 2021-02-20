@@ -10,8 +10,13 @@
 APersianHUD::APersianHUD()
 {
 	// Set the crosshair texture
-	static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshairTexObj(TEXT("/Game/FirstPerson/Textures/FirstPersonCrosshair"));
-	CrosshairTex = CrosshairTexObj.Object;
+	static ConstructorHelpers::FObjectFinder<UTexture2D>
+		CrosshairTexObj(TEXT("/Game/FirstPerson/Textures/FirstPersonCrosshair"));
+	// Set the thumbs up texture
+	static ConstructorHelpers::FObjectFinder<UTexture2D>
+		ThumbsUpObj(TEXT("/Game/FirstPerson/Textures/thumbsup"));
+	this->CrosshairTex = CrosshairTexObj.Object;
+	this->ThumbsUpTex = ThumbsUpObj.Object;
 }
 
 
@@ -32,4 +37,8 @@ void APersianHUD::DrawHUD()
 	FCanvasTileItem TileItem(CrosshairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
 	TileItem.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(TileItem);
+}
+
+void APersianHUD::MissionComplete() {
+	this->CrosshairTex = this->ThumbsUpTex;
 }
