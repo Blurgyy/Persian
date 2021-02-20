@@ -177,8 +177,7 @@ void APersianCharacter::OnFire()
 				TEXT("Attempting to attach object .."));
 		}
 		FHitResult res = this->VisionHit(1500);
-		if (res.Actor.Get() != nullptr) {
-			this->Attach(res.Actor.Get(), res.Location);
+		if (res.Actor.Get() != nullptr && this->Attach(res.Actor.Get(), res.Location)) {
 			this->AttachedObject->SetActorEnableCollision(false);
 			this->ScaleAttachedObject(30.0 / this->State.Dist);
 		}
@@ -392,9 +391,9 @@ void APersianCharacter::MoveAttachedObject(double const &Far) {
 	}
 }
 
-void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
+bool APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	if (Object == nullptr || Object->GetRootComponent()->Mobility == EComponentMobility::Static) {
-		return;
+		return false;
 	}
 	this->AttachedObject = Object;
 	/* Disable physics simulation */
@@ -437,7 +436,9 @@ void APersianCharacter::Attach(AActor* Object, FVector const &HitLocation) {
 	/* Do not attach an object with no body */
 	if (this->Directions.Num() == 0) {
 		this->Detach();
+		return false;
 	}
+	return true;
 }
 void APersianCharacter::Detach() {
 	if (this->AttachedObject == nullptr) {

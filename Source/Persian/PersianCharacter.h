@@ -173,7 +173,7 @@ public:
 		AActor* AttachedObject;
 
 	UFUNCTION(BlueprintCallable, Category = "Persian")
-		void Attach(AActor* Object, FVector const &HitLocation);
+		bool Attach(AActor* Object, FVector const &HitLocation);
 	UFUNCTION(BlueprintCallable, Category = "Persian")
 		void Detach();
 	UFUNCTION(BlueprintCallable, Category = "Persian")
