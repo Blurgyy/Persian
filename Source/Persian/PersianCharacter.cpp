@@ -323,8 +323,6 @@ void APersianCharacter::Tick(float DeltaTime) {
 
 void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 	if (this->AttachedObject != nullptr) {
-		/* Disable collision */
-		// this->AttachedObject->SetActorEnableCollision(false);
 		/* Update object scale */
 		this->AttachedObject->SetActorScale3D(this->State.Scale * RelativeScale);
 		FVector CamLocation = this->GetFirstPersonCameraComponent()->GetComponentLocation();
@@ -347,9 +345,6 @@ void APersianCharacter::ScaleAttachedObject(double const &RelativeScale) {
 
 		/* Update object position and orientation */
 		this->AttachedObject->TeleportTo(TargetLocation, TargetRotation);
-
-		/* Enable collision */
-		// this->AttachedObject->SetActorEnableCollision(true);
 	}
 }
 
@@ -367,17 +362,6 @@ void APersianCharacter::MoveAttachedObject(double const &Far) {
 		QueryParams.bTraceComplex = true;
 
 		double minScale = std::numeric_limits<double>::max();
-
-		// FVector center, ext;
-		// this->AttachedObject->GetActorBounds(true, center, ext);
-		// FVector fwd = (center - CamLocation).GetSafeNormal();
-		// FQuat rot = this->AttachedObject->GetActorRotation().Quaternion();
-		// FCollisionShape shape = FCollisionShape::MakeBox(ext);
-		// this->GetWorld()->SweepSingleByChannel(
-			// hitres, CamLocation, CamLocation + fwd * 30000,
-			// rot, ECollisionChannel::ECC_Visibility, shape,
-			// QueryParams
-		// );
 
 		for (FVector const& d : this->Directions) {
 			FVector dir = CamRotation.RotateVector(d).GetSafeNormal();
